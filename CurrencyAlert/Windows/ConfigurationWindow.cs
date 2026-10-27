@@ -14,7 +14,7 @@ using KamiLib.Classes;
 using KamiLib.CommandManager;
 using KamiLib.Window;
 using KamiLib.Window.SelectionWindows;
-using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using Lumina.Excel.Sheets;
 
 namespace CurrencyAlert.Windows;
@@ -386,7 +386,7 @@ public class ListNodeSettingsTab : ITabItem {
         ImGui.TableNextColumn();
         var orientation = listNode.LayoutOrientation;
         ImGuiTweaks.SetFullWidth();
-        if (ComboHelper.EnumCombo("##Orientation", ref orientation)) {
+        if (ImGuiTweaks.EnumCombo("##Orientation", ref orientation)) {
             listNode.LayoutOrientation = orientation;
         }
         
@@ -396,7 +396,7 @@ public class ListNodeSettingsTab : ITabItem {
         ImGui.TableNextColumn();
         var anchor = listNode.LayoutAnchor;
         ImGuiTweaks.SetFullWidth();
-        if (ComboHelper.EnumCombo("##Anchor", ref anchor)) {
+        if (ImGuiTweaks.EnumCombo("##Anchor", ref anchor)) {
             listNode.LayoutAnchor = anchor;
         }
         
@@ -482,7 +482,7 @@ public class CurrencyNodeSettingsTab : ITabItem {
         ImGui.TableNextColumn();
         var textFont = sampleNode.LabelFont;
         ImGuiTweaks.SetFullWidth();
-        if (ComboHelper.EnumCombo("##TextFont", ref textFont)) {
+        if (ImGuiTweaks.EnumCombo("##TextFont", ref textFont)) {
             sampleNode.LabelFont = textFont;
         }
 
@@ -531,7 +531,7 @@ public class CurrencyNodeSettingsTab : ITabItem {
 
     private void ApplyAll(CurrencyWarningNode referenceNode, OverlayListNode overlayListNode) {
         foreach (var node in overlayListNode.NodeList) {
-            node.Load(referenceNode, "Position", "Size");
+            node.Load(referenceNode);
             node.RecalculateLayout();
         }
     }

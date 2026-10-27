@@ -15,7 +15,7 @@ public class Configuration : IPluginConfiguration {
     public int Version { get; set; } = 7;
 
     public static Configuration Load()
-        => Service.PluginInterface.LoadConfigFile("CurrencyAlert.config.json", () => new Configuration());
+        => Service.PluginInterface.LoadConfigFile<Configuration>("CurrencyAlert.config.json");
 
     public void Save()
         => Service.PluginInterface.SaveConfigFile("CurrencyAlert.config.json", this);

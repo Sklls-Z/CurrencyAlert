@@ -1,19 +1,28 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CurrencyAlert.Classes;
 using CurrencyAlert.Windows;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 using KamiLib.CommandManager;
 using KamiLib.Window;
 using KamiToolKit;
 
 namespace CurrencyAlert;
 
-public sealed class CurrencyAlertPlugin : IDalamudPlugin {
+public sealed class CurrencyAlertPlugin : IAsyncDalamudPlugin {
+    private readonly IDalamudPluginInterface pluginInterface;
+
     public CurrencyAlertPlugin(IDalamudPluginInterface pluginInterface) {
+        this.pluginInterface = pluginInterface;
+    }
+
+    public async Task LoadAsync(CancellationToken token) {
         pluginInterface.Create<Service>();
-        
+
+        await KamiToolKitLibrary.InitializeAsync(pluginInterface);
+
         System.Config = Configuration.Load();
         System.CommandManager = new CommandManager(Service.PluginInterface, "currencyalert", "calert");
 
@@ -25,35 +34,29 @@ public sealed class CurrencyAlertPlugin : IDalamudPlugin {
             System.Config.Save();
         }
 
-        System.NativeController = new NativeController(Service.PluginInterface);
         System.WindowManager = new WindowManager(Service.PluginInterface);
 
         System.ConfigurationWindow = new ConfigurationWindow();
         System.WindowManager.AddWindow(System.ConfigurationWindow, WindowFlags.IsConfigWindow | WindowFlags.RequireLoggedIn);
 
-        System.OverlayController = new OverlayController();
+        await Service.Framework.Run(() => System.OverlayController = new OverlayController(), token);
 
         Service.ClientState.TerritoryChanged += OnZoneChange;
-        Service.Framework.Update += OnFrameworkUpdate;
     }
 
-    public void Dispose() {
+    public async ValueTask DisposeAsync() {
         Service.ClientState.TerritoryChanged -= OnZoneChange;
-        Service.Framework.Update -= OnFrameworkUpdate;
 
-        System.CommandManager.Dispose();
-        System.WindowManager.Dispose();
-        System.OverlayController.Dispose();
-        System.NativeController.Dispose();
+        System.CommandManager?.Dispose();
+        System.WindowManager?.Dispose();
+
+        await Service.Framework.Run(() => {
+            System.OverlayController?.Dispose();
+            KamiToolKitLibrary.Dispose();
+        });
     }
 
-    private void OnFrameworkUpdate(IFramework framework) {
-        if (!Service.ClientState.IsLoggedIn) return;
-
-        System.OverlayController.Update();
-    }
-
-    private void OnZoneChange(ushort e) {
+    private void OnZoneChange(uint e) {
         if (System.Config is { ChatWarning: false }) return;
 
         foreach (var currency in System.Config.Currencies.Where(currency => currency is { HasWarning: true, ChatWarning: true, Enabled: true })) {

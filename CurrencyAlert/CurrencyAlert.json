@@ -6,5 +6,6 @@
   "Tags": [    "Currency",    "Tomestones",    "Alert",    "Tracker"  ],
   "InternalName": "CurrencyAlert",
   "RepoUrl": "https://github.com/MidoriKami/CurrencyAlert",
-  "AcceptsFeedback": false
+  "AcceptsFeedback": false,
+  "CanUnloadAsync": true
 }

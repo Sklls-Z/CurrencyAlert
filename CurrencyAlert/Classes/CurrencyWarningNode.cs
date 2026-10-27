@@ -4,41 +4,38 @@ using System.IO;
 using System.Numerics;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using KamiToolKit.System;
-using Newtonsoft.Json;
+using KamiToolKit.Nodes.Simplified;
+using Newtonsoft.Json.Linq;
 
 namespace CurrencyAlert.Classes;
 
-[JsonObject(MemberSerialization.OptIn)]
 public class CurrencyWarningNode : SimpleComponentNode {
-    [JsonProperty] private readonly BackgroundImageNode background;
-    [JsonProperty] private readonly TextNode warningText;
-    [JsonProperty] private readonly CurrencyIconNode currencyIcon;
+    private readonly ColorImageNode background;
+    private readonly TextNode warningText;
+    private readonly CurrencyIconNode currencyIcon;
 
-	private static string CurrencyNodeConfigPath => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "CurrencyNode.style.json");
-    
+    private static string CurrencyNodeConfigPath => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "CurrencyNode.style.json");
+
     public CurrencyWarningNode() {
-        Margin = new Spacing(5.0f);
-
-        background = new BackgroundImageNode {
+        background = new ColorImageNode {
             NodeId = 2,
             Position = new Vector2(-5.0f, -5.0f),
             Size = new Vector2(610.0f, 42.0f),
             Color = KnownColor.Black.Vector() with { W = 0.30f },
-            WrapMode = 1,
+            WrapMode = WrapMode.Tile,
             IsVisible = false,
         };
-        System.NativeController.AttachNode(background, this);
+        background.AttachNode(this);
 
         currencyIcon = new CurrencyIconNode {
             NodeId = 3,
             Position = new Vector2(5.0f, 0.0f),
             Size = new Vector2(32.0f, 32.0f),
             IsVisible = true,
-            Margin = new Spacing { Right = 15.0f },
         };
-        System.NativeController.AttachNode(currencyIcon, this);
+        currencyIcon.AttachNode(this);
 
         warningText = new TextNode {
             NodeId = 4,
@@ -51,14 +48,14 @@ public class CurrencyWarningNode : SimpleComponentNode {
             TextOutlineColor = KnownColor.Black.Vector(),
             IsVisible = true,
         };
-        System.NativeController.AttachNode(warningText, this);
+        warningText.AttachNode(this);
     }
 
     public TrackedCurrency? Currency {
         get;
         set {
             field = value;
-            
+
             if (value is null) {
                 IsVisible = false;
             }
@@ -70,41 +67,41 @@ public class CurrencyWarningNode : SimpleComponentNode {
 
     public void UpdateFromCurrency() {
         if (Currency is null) return;
-        
+
         currencyIcon.IconId = Currency.IconId;
-        warningText.Text = Currency.ShowItemName ? $"{Currency.Name} {Currency.WarningText}" : $"{Currency.WarningText}";
+        warningText.String = Currency.ShowItemName ? $"{Currency.Name} {Currency.WarningText}" : $"{Currency.WarningText}";
         currencyIcon.ItemCount = Currency.CurrentCount;
         IsVisible = true;
-        
+
         RecalculateLayout();
     }
 
-    [JsonProperty] public bool ShowIcon {
+    public bool ShowIcon {
         get => currencyIcon.IsVisible;
         set => currencyIcon.IsVisible = value;
     }
 
-    [JsonProperty] public bool ShowText {
+    public bool ShowText {
         get => warningText.IsVisible;
         set => warningText.IsVisible = value;
     }
 
-    [JsonProperty] public int TextSize {
+    public int TextSize {
         get => (int) warningText.FontSize;
         set => warningText.FontSize = (uint) value;
     }
 
-    [JsonProperty] public Vector4 TextColor {
+    public Vector4 TextColor {
         get => warningText.TextColor;
         set => warningText.TextColor = value;
     }
 
-    [JsonProperty] public bool ShowItemCount {
+    public bool ShowItemCount {
         get => currencyIcon.ShowItemCount;
         set => currencyIcon.ShowItemCount = value;
     }
 
-    [JsonProperty] public FontType LabelFont {
+    public FontType LabelFont {
         get => warningText.FontType;
         set => warningText.FontType = value;
     }
@@ -114,14 +111,14 @@ public class CurrencyWarningNode : SimpleComponentNode {
 
         if (currencyIcon.IsVisible) {
             currencyIcon.X = currentPosition;
-            currentPosition += currencyIcon.LayoutSize.X;
+            currentPosition += currencyIcon.LayoutWidth;
         }
 
         if (warningText.IsVisible) {
             warningText.X = currentPosition;
-            currentPosition += warningText.LayoutSize.X;
+            currentPosition += warningText.Width;
         }
-        
+
         background.Width = currentPosition + 10.0f;
         RecalculateSize();
     }
@@ -130,11 +127,11 @@ public class CurrencyWarningNode : SimpleComponentNode {
         var width = 0.0f;
 
         if (ShowIcon) {
-            width += currencyIcon.LayoutSize.X;
+            width += currencyIcon.LayoutWidth;
         }
 
         if (ShowText) {
-            width += warningText.LayoutSize.X;
+            width += warningText.Width;
         }
 
         Size = ShowText ? new Vector2(width, MathF.Max(currencyIcon.Height, warningText.Height)) : new Vector2(width, currencyIcon.Height);
@@ -145,6 +142,58 @@ public class CurrencyWarningNode : SimpleComponentNode {
     public void Load()
         => Load(CurrencyNodeConfigPath);
 
+    public void Load(string filePath) {
+        if (!File.Exists(filePath)) return;
+
+        var json = JObject.Parse(File.ReadAllText(filePath));
+
+        if (json["ShowIcon"]?.ToObject<bool>() is { } showIcon) {
+            ShowIcon = showIcon;
+        }
+
+        if (json["ShowText"]?.ToObject<bool>() is { } showText) {
+            ShowText = showText;
+        }
+
+        if (json["TextSize"]?.ToObject<int>() is { } textSize) {
+            TextSize = textSize;
+        }
+
+        if (json["TextColor"]?.ToObject<Vector4>() is { } textColor) {
+            TextColor = textColor;
+        }
+
+        if (json["ShowItemCount"]?.ToObject<bool>() is { } showItemCount) {
+            ShowItemCount = showItemCount;
+        }
+
+        if (json["LabelFont"]?.ToObject<FontType>() is { } labelFont) {
+            LabelFont = labelFont;
+        }
+    }
+
+    public void Load(CurrencyWarningNode other) {
+        ShowIcon = other.ShowIcon;
+        ShowText = other.ShowText;
+        TextSize = other.TextSize;
+        TextColor = other.TextColor;
+        ShowItemCount = other.ShowItemCount;
+        LabelFont = other.LabelFont;
+    }
+
     public void Save()
         => Save(CurrencyNodeConfigPath);
+
+    public void Save(string filePath) {
+        var json = new JObject {
+            ["ShowIcon"] = ShowIcon,
+            ["ShowText"] = ShowText,
+            ["TextSize"] = TextSize,
+            ["TextColor"] = JToken.FromObject(TextColor),
+            ["ShowItemCount"] = ShowItemCount,
+            ["LabelFont"] = JToken.FromObject(LabelFont),
+        };
+
+        File.WriteAllText(filePath, json.ToString());
+    }
 }

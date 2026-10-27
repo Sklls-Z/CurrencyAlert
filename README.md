@@ -1,4 +1,9 @@
 # CurrencyAlert
+
+This is a fork of [MidoriKami/CurrencyAlert](https://github.com/MidoriKami/CurrencyAlert), updated for **Dalamud API 15** (FFXIV Patch 7.5, .NET 10). The original repository is archived and last targeted API 13.
+
+KamiLib is bundled in this repo (not a submodule) with local API 15 compile fixes, because upstream KamiLib is archived. KamiToolKit remains a submodule of the public MidoriKami repo.
+
 [![Download count](https://img.shields.io/endpoint?url=https://qzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws/CurrencyAlert)](https://github.com/MidoriKami/CurrencyAlert)
 
 Currency Alert is a FFXIV/Dalamud plugin for showing configurable warnings related to your currency.

@@ -1,79 +1,44 @@
-﻿using System.Drawing;
+﻿using System;
 using System.IO;
-using System.Linq;
 using System.Numerics;
-using Dalamud.Interface;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using KamiLib.Extensions;
-using KamiToolKit;
-using KamiToolKit.Classes;
+using OverlayService = KamiToolKit.UiOverlay.OverlayController;
 
 namespace CurrencyAlert.Classes;
 
-public unsafe class OverlayController : NameplateAddonController {
+public class OverlayController : IDisposable {
+    private readonly OverlayService overlayService;
 
-    public OverlayListNode? OverlayListNode;
+    public OverlayListNode OverlayListNode { get; }
 
     private static string ListNodeConfigPath => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "ListNode.style.json");
-    
+
     public readonly CurrencyWarningNode SampleNode = new() {
         Height = 32.0f,
         IsVisible = true,
-        EnableEventFlags = true,
-        Tooltip = "Overlay from CurrencyAlert plugin",
+        TextTooltip = "Overlay from CurrencyAlert plugin",
     };
 
-    public OverlayController() : base(Service.PluginInterface) {
+    public OverlayController() {
         SampleNode.Load();
-        
-        OnAttach += AttachNodes;
-        OnDetach += DetachNodes;
 
-        Enable();
-    }
-
-    public override void Dispose() {
-        OnAttach -= AttachNodes;
-        OnDetach -= DetachNodes;
-        
-        base.Dispose();
-    }
-
-    private void AttachNodes(AddonNamePlate* addonNamePlate) {
         OverlayListNode = new OverlayListNode {
-            NodeId = 100000001,
             Size = new Vector2(600.0f, 200.0f),
             Position = new Vector2(1920.0f, 1024.0f) / 2.0f,
-            BackgroundColor = KnownColor.Aqua.Vector() with { W = 0.40f },
             IsVisible = true,
         };
         OverlayListNode.Load(ListNodeConfigPath);
-        System.NativeController.AttachNode(OverlayListNode, addonNamePlate->RootNode, NodePosition.AsFirstChild);
+
+        overlayService = new OverlayService();
+        overlayService.AddNode(OverlayListNode);
     }
 
-    private void DetachNodes(AddonNamePlate* addonNamePlate) {
-        if (OverlayListNode is null) return;
-
-        System.NativeController.DetachNode(OverlayListNode, () => {
-            OverlayListNode.Dispose();
-            OverlayListNode = null;
-        });
-    }
-
-    public void Update() {
-        if (OverlayListNode is null) return;
-
-        OverlayListNode.IsVisible = System.Config.OverlayEnabled && !(Service.Condition.IsBoundByDuty() && System.Config.HideInDuties);
-
-        var activeWarnings = System.Config.Currencies
-            .Where(currency => currency is { HasWarning: true, Enabled: true, ShowInOverlay: true })
-            .ToList();
-        
-        OverlayListNode.UpdateWarnings(activeWarnings);
+    public void Dispose() {
+        overlayService.Dispose();
+        SampleNode.Dispose();
     }
 
     public void Save() {
-        OverlayListNode?.Save(ListNodeConfigPath);
+        OverlayListNode.Save(ListNodeConfigPath);
         SampleNode.Save();
     }
 }

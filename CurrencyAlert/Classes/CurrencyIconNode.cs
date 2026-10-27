@@ -3,26 +3,26 @@ using System.Drawing;
 using System.Numerics;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using Newtonsoft.Json;
+using KamiToolKit.Nodes.Simplified;
 
 namespace CurrencyAlert.Classes;
 
-[JsonObject(MemberSerialization.OptIn)]
 public class CurrencyIconNode : SimpleComponentNode {
-    [JsonProperty] private readonly IconImageNode currencyIcon;
-    [JsonProperty] private readonly TextNode itemCountText;
+    private readonly IconImageNode currencyIcon;
+    private readonly TextNode itemCountText;
 
     public CurrencyIconNode() {
         currencyIcon = new IconImageNode {
             NodeId = 2,
             NodeFlags = NodeFlags.Visible,
             Size = new Vector2(32.0f, 32.0f),
-            WrapMode = 1,
+            WrapMode = WrapMode.Tile,
             IsVisible = true,
         };
-        System.NativeController.AttachNode(currencyIcon, this);
-        
+        currencyIcon.AttachNode(this);
+
         itemCountText = new TextNode {
             NodeId = 3,
             FontSize = 12,
@@ -34,11 +34,11 @@ public class CurrencyIconNode : SimpleComponentNode {
             TextFlags = TextFlags.Edge,
             IsVisible = true,
         };
-        System.NativeController.AttachNode(itemCountText, this);
+        itemCountText.AttachNode(this);
     }
 
     public int ItemCount {
-        get => int.Parse(itemCountText.Text.ToString());
+        get => int.TryParse(itemCountText.String.ToString(), out var count) ? count : 0;
         set {
             if (itemCountText.IsVisible) {
                 itemCountText.SetNumber(value);
@@ -56,9 +56,6 @@ public class CurrencyIconNode : SimpleComponentNode {
         set => itemCountText.IsVisible = value;
     }
 
-    public override float Width 
-        => Margin.Left + Math.Max(currencyIcon.Width, itemCountText.Width) + Margin.Right;
-
-    public override float Height 
-        => Margin.Top + Math.Max(currencyIcon.Height, itemCountText.Height) + Margin.Bottom;
+    public float LayoutWidth
+        => Math.Max(currencyIcon.Width, itemCountText.Width) + 15.0f;
 }
